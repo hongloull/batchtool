@@ -1,0 +1,38 @@
+//Description: batch hardware render 
+//Version:1.00
+//Author:honglou(hongloull@hotmail.com)
+//Create:2009.05.12
+//Update:2009.05.12
+
+global proc endHardwareRender(
+    string $image, int $fs, int $fe, int $fi, int $rate,
+    string $path, string $filename )
+{
+    print "Finished hardware render\n";
+    print ("    Image name       "+$image+"\n");
+    print ("    Frames           "+$fs+" to "+$fe+" by "+$fi+"\n");
+    print ("    Frame rate       "+$rate+"\n");
+    print ("    File path        "+$path+"\n");
+    print ("    Filename pattern "+$filename+"\n");
+    // quit maya
+    quit -force;
+}
+
+proc hardwareRenderBatch(){
+  HardwareRenderBuffer;
+  //glRenderWin;
+
+  // List all persp cameras
+  string $persp,$pShape[],$perspCameras[] = `listCameras -p`;
+  for ($persp in $perspCameras) {
+    if($persp != "persp" && $persp == "camera1" ){
+      select -r $persp;
+      $pShape = `ls -cameras -lf -dag -sl` ;
+    }
+  }     
+  glRenderEditor -e -lookThru $pShape[0] hardwareRenderView;
+  
+  glRender -e -fc endHardwareRender;
+  glRender -renderSequence hardwareRenderView;
+}
+hardwareRenderBatch ;
