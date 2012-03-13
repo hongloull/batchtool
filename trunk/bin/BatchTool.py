@@ -76,6 +76,7 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 		#def attribute
 		self.preferenceEntry = {}
 		self.preferenceMayaEntry = {}
+		self.Filter_Entry = None
 		#def the dictionary of batch tool for maya's env
 		#For nt, repalce '\' with '/'
 		curDir = os.getcwd().replace('\\','/')
@@ -163,6 +164,16 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 		fileGroup.pack(fill = 'both', expand = 1, padx = 1, pady = 1)
 		FileScrollbar = MyScrollbar( fileGroup.interior() )
 		FileScrollbar.pack()
+		
+		FilterFrame = MyFrame( fileGroup.interior() )
+		FilterFrame.pack(expand=Tkinter.YES,fill=Tkinter.X)
+		MyLabel(FilterFrame,width=25,text='filter:' ).pack(side=Tkinter.LEFT)
+		self.Filter_Entry = MyEntry(FilterFrame,width=30 )
+		#bind func for preference entry
+		self.Filter_Entry.bind( '<Return>',lambda e:self.performFilter(e))
+		self.Filter_Entry.pack(side=Tkinter.LEFT,expand=Tkinter.YES,fill=Tkinter.X)
+		
+		
 		self.FileText = MyText(fileGroup.interior(),yscrollcommand=FileScrollbar.set,height=15)
 		self.FileText.pack(side=Tkinter.LEFT,expand=Tkinter.YES,fill=Tkinter.X)
 		FileScrollbar.config(command=self.FileText.yview)
@@ -521,6 +532,23 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 	def setMayaPreferenceOptionEntryFunc(self,event,preference):
 		self.envMaya[preference] = self.preferenceMayaEntry[preference].get()	      
 
+	#func for filter entry
+	def performFilter(self,event):
+		#print self.Filter_Entry
+		parten = self.Filter_Entry.get()
+		#print 'parten:',parten
+		if parten:
+			# get list
+			files = self.getFileList()
+			fs = ''
+			for f in files:
+				if f.find(parten) != -1 :
+					fs += f +'\n'
+			# insert new list to file list
+			self.FileText.delete('1.0',Tkinter.END)
+			self.FileText.insert(Tkinter.END,fs)
+		
+		
 	#func for preference button
 	def setMayaPreferenceOptionButtonFunc(self,preference):
 		dirName = tkFileDialog.askdirectory(title = 'Set Preference',
@@ -615,9 +643,23 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 						    initialdir=self.env.get('openDirectoryInitialDir') )
 		self.OpenDirectoryInitialDir.set(openDirectoryInitialDir)
 
+#	#func for get files in selected folder
+#	def getFileInDir(self,exts,dir,files):
+#		#print 'dir=',dir,'files=',files
+#		for ext in exts:
+#			print ext
+#			goodfiles = [x for x in files if x.endswith(ext)==1]
+#			#print 'goodfiles=',goodfiles,'\n'
+#			for goodfile in goodfiles:
+#				goodfile = os.path.join(dir,goodfile)
+#				#print 'goodfile=',goodfile,'\n'
+#				self.File.set(goodfile+'\n')
+#				self.FileText.insert(Tkinter.END,self.File.get())
+	
 	#func for get files in selected folder
 	def getFileInDir(self,exts,dir,files):
 		#print 'dir=',dir,'files=',files
+		exts = ['.ma','.mb']
 		for ext in exts:
 			goodfiles = [x for x in files if x.endswith(ext)==1]
 			#print 'goodfiles=',goodfiles,'\n'
