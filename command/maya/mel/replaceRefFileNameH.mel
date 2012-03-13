@@ -1,0 +1,56 @@
+//Description:
+//Author:honglou(hongloull@hotmail.com)
+//version:1.00
+//Create:2008.04.21
+//Update:2008.04.29
+//How to use :		
+//      put the script in your scripts folder
+//      source it
+		
+
+proc replaceRefFileNameH(){
+  //setProject "/mnt/production/Fireman/Projects_TV/FiremanSam_52Ep/Eastar_work" ;
+  string $ext,$file,$ref,$refs[],$refList,$refLists[] = `ls -type reference` ;
+  for($refList in $refLists){
+    //get top reference
+    if ( catch ($refList = `referenceQuery -topReference -referenceNode $refList`) ){
+    }
+    else{
+      appendStringArray($refs, {$refList}, 1) ;
+    } 
+  }
+  //remove duplicate
+  $refs = stringArrayRemoveDuplicates($refs);
+  for($ref in $refs){
+    //$file = `referenceQuery -filename $ref` ;
+    if ( catch ($file = `referenceQuery -filename $ref`) ){
+      //print ("$ref:"+$ref+"\n") ;
+    }
+    else{
+      print ("$ref:"+$ref+"\n") ;
+      if ( `file -rfn $ref -q -dr`!=1 ){
+      	//$file = `substitute "^.*Main_Assets/" $file "Z:/Projects_TV/FiremanSam_52Ep/Eastar_work/Main_Assets/"` ;
+	//$file = `substitute "I:/production/menghuanxiyou/mhxy_scense/scenes/tree_high" $file "scenes/asset/set/set01/high/tree"` ;
+	$file = `substitute "//scenes" $file "scenes"` ;
+        if ( endString($file, 1) == "b" ){
+      	  $ext = "mayaBinary" ;
+      	}
+      	else{
+      	  $ext = "mayaAscii" ;
+      	}
+      	
+      	// TODO
+      	$ext = "mayaBinary" ;
+      	
+      	if ( catch (`file -loadReference $ref -type $ext -options "v=0;p=17" $file`) ){
+      	  print ("$file="+$file) ;
+      	}
+      }
+    } 
+  
+  }
+  file -save ;
+}
+replaceRefFileNameH() ;
+
+
