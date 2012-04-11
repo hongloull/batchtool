@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 #Description:Batch tool for maya and operation system
 #Version:1.00
-#Author:honglou(hongloull@hotmail.com)
+#Author:honglou(hongloull@gmail.com)
 #Create:2008.01.27
-#Update:2009.05.13
+#Update:2012.04.06
 import Tkinter,tkFileDialog,tkMessageBox,os,sys,string,re,shutil
 import tempfile,traceback
 import Pmw
@@ -76,6 +76,8 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 		#def attribute
 		self.preferenceEntry = {}
 		self.preferenceMayaEntry = {}
+		self.Filter_Entry = None
+		self.Exclude_Entry = None
 		#def the dictionary of batch tool for maya's env
 		#For nt, repalce '\' with '/'
 		curDir = os.getcwd().replace('\\','/')
@@ -102,7 +104,9 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 		self.BatchConfig = Tkinter.IntVar()
 		self.BatchConfig.set(0)
 		self.MayaBatchVar = Tkinter.IntVar()
-		self.MayaBatchVar.set(0)
+		self.MayaBatchVar.set(1)
+		self.MayaSaveVar = Tkinter.IntVar()
+		self.MayaSaveVar.set(1)
 		self.PowerOffAfterBatch = Tkinter.IntVar()
 		self.PowerOffAfterBatch.set(0)
 		self.File = Tkinter.StringVar()
@@ -163,6 +167,25 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 		fileGroup.pack(fill = 'both', expand = 1, padx = 1, pady = 1)
 		FileScrollbar = MyScrollbar( fileGroup.interior() )
 		FileScrollbar.pack()
+		
+		FilterFrame = MyFrame( fileGroup.interior() )
+		FilterFrame.pack(expand=Tkinter.YES,fill=Tkinter.X)
+		MyLabel(FilterFrame,width=25,text='filter:' ).pack(side=Tkinter.LEFT)
+		self.Filter_Entry = MyEntry(FilterFrame,width=30 )
+		#bind func for preference entry
+		self.Filter_Entry.bind( '<Return>',lambda e:self.performFilter(e))
+		self.Filter_Entry.pack(side=Tkinter.LEFT,expand=Tkinter.YES,fill=Tkinter.X)
+		
+		
+		ExcludeFrame = MyFrame( fileGroup.interior() )
+		ExcludeFrame.pack(expand=Tkinter.YES,fill=Tkinter.X)
+		MyLabel(ExcludeFrame,width=25,text='Exclude:' ).pack(side=Tkinter.LEFT)
+		self.Exclude_Entry = MyEntry(ExcludeFrame,width=30 )
+		#bind func for preference entry
+		self.Exclude_Entry.bind( '<Return>',lambda e:self.performExclude(e))
+		self.Exclude_Entry.pack(side=Tkinter.LEFT,expand=Tkinter.YES,fill=Tkinter.X)
+		
+				
 		self.FileText = MyText(fileGroup.interior(),yscrollcommand=FileScrollbar.set,height=15)
 		self.FileText.pack(side=Tkinter.LEFT,expand=Tkinter.YES,fill=Tkinter.X)
 		FileScrollbar.config(command=self.FileText.yview)
@@ -176,13 +199,23 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 		# maya cmd settings
 		MayaCmdFrame = MyFrame( mayaCmdGroup.interior() )
 		MayaCmdFrame.pack(expand=Tkinter.YES,fill=Tkinter.X)
-		MayaCmdLabel = MyLabel(MayaCmdFrame,width=18,text='Batch:').pack()
+		
+		MayaCmdBatchLabel = MyLabel(MayaCmdFrame,width=18,text='Batch:').pack()
 		for batchType,batchVal in [('Yes',1),('No',0)]:
-			MayaCmdRadBtn = Tkinter.Radiobutton( MayaCmdFrame,
+			MayaCmdBatchRadBtn = Tkinter.Radiobutton( MayaCmdFrame,
 							     text=batchType,
 							     value=batchVal,
 							     variable=self.MayaBatchVar )
-			MayaCmdRadBtn.pack(side=Tkinter.LEFT,expand=Tkinter.YES,fill=Tkinter.X)		
+			MayaCmdBatchRadBtn.pack(side=Tkinter.LEFT,expand=Tkinter.YES,fill=Tkinter.X)
+
+		MayaCmdSaveLabel = MyLabel(MayaCmdFrame,width=18,text='Save File:').pack()
+		for saveType,saveVal in [('Yes',1),('No',0)]:
+			MayaCmdSaveRadBtn = Tkinter.Radiobutton( MayaCmdFrame,
+							     text=saveType,
+							     value=saveVal,
+							     variable=self.MayaSaveVar )
+			MayaCmdSaveRadBtn.pack(side=Tkinter.LEFT,expand=Tkinter.YES,fill=Tkinter.X)
+						
 		CmdMayaScrollbar = MyScrollbar( mayaCmdGroup.interior() )
 		CmdMayaScrollbar.pack()
 		self.CmdMayaText = MyText(mayaCmdGroup.interior(),yscrollcommand=CmdMayaScrollbar.set,height=15)
@@ -289,14 +322,15 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 		PySubMenu.add_command( label='Source Py',command = self.sourcePy )
 		PySubMenu.add_separator()
 		for x in os.listdir( os.path.normpath(self.BatchToolDir+'command/maya/py') ) :
-			if x.endswith('.py') :
+			if x.endswith('.py') or x.endswith('.pyc') :
 				if x!= '__init__.py' and x[-1]!='~':
-					if x.endswith('.pyc') :
-						pass
-					else :
-						cmd = self.BatchToolDir+'command/maya/py/'+x
+					cmd = self.BatchToolDir+'command/maya/py/'+x
+					if x.endswith('.py'):
 						subMenu = PySubMenu.add_command( label=re.sub(r'(.py)$','',x),
-										 command=lambda f=cmd:self.sourcePy(f) )
+														command=lambda f=cmd:self.sourcePy(f) )
+					else:
+						subMenu = PySubMenu.add_command( label=re.sub(r'(.pyc)$','',x),
+														command=lambda f=cmd:self.sourcePy(f) )
 		Menu.add_cascade(label='Py',menu=PySubMenu)
 		
                 #Create the Command menu for 'python' dir
@@ -346,7 +380,13 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 				tkMessageBox.showerror('open error...',('Could not open '+f))
 			else:
 				for x in f.readlines():
-					self.env[ x.strip().split('=')[0] ] = x.strip().split('=')[1]
+					k = x.strip().split('=')[0]
+					v = x.strip().split('=')[1]
+					self.env[k] = v
+#					if k=='openDirectoryInitialExt':
+#						self.env[k] = v.split()
+#						print self.env[k]
+					
 				f.close()
 		return self.env
 
@@ -394,14 +434,20 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 			#write preference entry'name to self.preferenceEntry for bind func use
 			self.preferenceEntry[x] = optEntry 
 			#if value is a dir options ,then add 'set' button
-			if self.env[x].find('/') != -1:
+			if x != 'openDirectoryInitialExt' :
+				if self.env[x].find('/') != -1:
+					#use lambda def for transform args
+					self.prefButton = MyButton( ConfigureFrame,text='Set',width=10,
+											command=(lambda pre=x:self.setPreferenceOptionButtonFunc(pre)) )
+					self.prefButton.pack()
+				#add label widget for align with button widget
+				else:
+					MyLabel(ConfigureFrame,width=10).pack()
+			else:
 				#use lambda def for transform args
 				self.prefButton = MyButton( ConfigureFrame,text='Set',width=10,
-							    command=(lambda pre=x:self.setPreferenceOptionButtonFunc(pre)) )
+										command=(lambda pre=x:self.setPreferenceOptionButtonFunc(pre)) )
 				self.prefButton.pack()
-			#add label widget for align with button widget
-			else:
-				MyLabel(ConfigureFrame,width=10).pack()
 			ConfigureFrame.pack(expand=Tkinter.YES,fill=Tkinter.X)
 		#save preference Frame
 		PreferenceFrame = MyFrame(self.preferenceRoot)
@@ -521,6 +567,38 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 	def setMayaPreferenceOptionEntryFunc(self,event,preference):
 		self.envMaya[preference] = self.preferenceMayaEntry[preference].get()	      
 
+	#func for filter entry
+	def performFilter(self,event):
+		#print self.Filter_Entry
+		parten = self.Filter_Entry.get()
+		#print 'parten:',parten
+		if parten:
+			# get list
+			files = self.getFileList()
+			fs = ''
+			for f in files:
+				if f.find(parten) != -1 :
+					fs += f +'\n'
+			# insert new list to file list
+			self.FileText.delete('1.0',Tkinter.END)
+			self.FileText.insert(Tkinter.END,fs)
+		
+	#func for exclude entry
+	def performExclude(self,event):
+		#print self.Filter_Entry
+		parten = self.Exclude_Entry.get()
+		#print 'parten:',parten
+		if parten:
+			# get list
+			files = self.getFileList()
+			fs = ''
+			for f in files:
+				if f.find(parten) == -1 :
+					fs += f +'\n'
+			# insert new list to file list
+			self.FileText.delete('1.0',Tkinter.END)
+			self.FileText.insert(Tkinter.END,fs)
+					
 	#func for preference button
 	def setMayaPreferenceOptionButtonFunc(self,preference):
 		dirName = tkFileDialog.askdirectory(title = 'Set Preference',
@@ -615,14 +693,30 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 						    initialdir=self.env.get('openDirectoryInitialDir') )
 		self.OpenDirectoryInitialDir.set(openDirectoryInitialDir)
 
+#	#func for get files in selected folder
+#	def getFileInDir(self,exts,dir,files):
+#		#print 'dir=',dir,'files=',files
+#		for ext in exts:
+#			print ext
+#			goodfiles = [x for x in files if x.endswith(ext)==1]
+#			#print 'goodfiles=',goodfiles,'\n'
+#			for goodfile in goodfiles:
+#				goodfile = os.path.join(dir,goodfile)
+#				#print 'goodfile=',goodfile,'\n'
+#				self.File.set(goodfile+'\n')
+#				self.FileText.insert(Tkinter.END,self.File.get())
+	
 	#func for get files in selected folder
 	def getFileInDir(self,exts,dir,files):
 		#print 'dir=',dir,'files=',files
-		for ext in exts:
+		#exts = ['.ma','.mb']
+		
+		for ext in exts.split():
 			goodfiles = [x for x in files if x.endswith(ext)==1]
 			#print 'goodfiles=',goodfiles,'\n'
 			for goodfile in goodfiles:
 				goodfile = os.path.join(dir,goodfile)
+				goodfile = goodfile.replace('\\','/')
 				#print 'goodfile=',goodfile,'\n'
 				self.File.set(goodfile+'\n')
 				self.FileText.insert(Tkinter.END,self.File.get())
@@ -692,7 +786,7 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 			    'python("sys.path.append(\\\\"' + os.path.dirname(f) +'\\\\")");\n' +\
 			    'python("import ' + os.path.splitext( os.path.basename(f) )[0] + '");\n' +\
 			    'python("' + os.path.splitext(  os.path.basename(f) )[0] + '.' +\
-			    os.path.splitext(  os.path.basename(f) )[0]  + '()");\n'
+			    'main'  + '()");\n'
 			self.CmdMayaText.insert( Tkinter.END,(f + '\n') )
 			
 	#func for source system python 
@@ -705,7 +799,8 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 							  filetypes=[('Python','*.py'),('All files','*')] )
 		#self.File.set(file+'\n')
 		if len(f):
-			f = 'python ' + '\"' + f + '\"'
+			pythonExe = self.env.get('pythonExe')
+			f = pythonExe + ' ' + '\"' + f + '\"'
 			self.CmdSysText.insert( Tkinter.END,(f+' $f ' + '\n') )	
 		
 	#func for for open directory menu
@@ -783,7 +878,10 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 				#Get project
 				cmdTxt = ' -proj ' + '\"' + self.envMaya['Proj'] + '\"'
 				#Get command
-				cmdTxt += ' -command ' + '\"' + self.CmdMayaText.get('1.0',Tkinter.END).replace('\"','\\"') + ';quit -force\"'
+				cmdTxt += ' -command ' + '\"' + self.CmdMayaText.get('1.0',Tkinter.END).replace('\"','\\"')
+				if self.MayaSaveVar.get() == 1 :
+						cmdTxt += 'file -s -f;'
+				cmdTxt += 'quit -force;\"'
 			
 		if cmdSys:
 			#get system command
@@ -807,13 +905,18 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 					#add system command
 					if cmdSys:
 						#replace the '$f' with the file
-						batchFileContent += '\n' + sysCmd.replace( '$f',fileName )
+						batchFileContent += '\n' + sysCmd.replace( '$f',('\"' + fileName + '\"') )
+						
+					# for no maya and system commands
+					if (not cmdMaya) and (not cmdSys):
+						batchFileContent += '\n' + fileName
+						
 		#print 'self.PowerOffAfterBatch:%s' % self.PowerOffAfterBatch.get()
 		if self.PowerOffAfterBatch.get() == 1 :
 			if os.name == 'posix':
 				batchFileContent += '\n' + 'poweroff'
 			else:
-				batchFileContent += '\n' + 'shutdown -s'
+				batchFileContent += '\n' + 'shutdown -s -f'
 		return batchFileContent
 	
 	#func for save to file
