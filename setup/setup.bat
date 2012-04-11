@@ -1,2 +1,2 @@
-cd /d Y:\ASP_RnD\tools\tools\BatchTool\setup
+cd /d d:\workspace\batchTool\setup
 python setup.py py2exe
