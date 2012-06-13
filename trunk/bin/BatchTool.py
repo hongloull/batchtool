@@ -107,6 +107,8 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 		self.MayaBatchVar.set(1)
 		self.MayaSaveVar = Tkinter.IntVar()
 		self.MayaSaveVar.set(1)
+		self.MayaQuitVar = Tkinter.IntVar()
+		self.MayaQuitVar.set(1)
 		self.PowerOffAfterBatch = Tkinter.IntVar()
 		self.PowerOffAfterBatch.set(0)
 		self.File = Tkinter.StringVar()
@@ -215,7 +217,23 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 							     value=saveVal,
 							     variable=self.MayaSaveVar )
 			MayaCmdSaveRadBtn.pack(side=Tkinter.LEFT,expand=Tkinter.YES,fill=Tkinter.X)
-						
+		MayaCmdQuitLabel = MyLabel(MayaCmdFrame,width=18,text='Quit Maya:').pack()
+		for quitType,quitVal in [('Yes',1),('No',0)]:
+			MayaCmdQuitRadBtn = Tkinter.Radiobutton( MayaCmdFrame,
+							     text=quitType,
+							     value=quitVal,
+							     variable=self.MayaQuitVar )
+			MayaCmdQuitRadBtn.pack(side=Tkinter.LEFT,expand=Tkinter.YES,fill=Tkinter.X)
+		
+		PythonPathFrame = MyFrame( mayaCmdGroup.interior() )
+		PythonPathFrame.pack(expand=Tkinter.YES,fill=Tkinter.X)
+		MyLabel(PythonPathFrame,width=12,text='Python Path:' ).pack(side=Tkinter.LEFT)
+		self.PythonPath_Entry = MyEntry(PythonPathFrame,width=45 )
+		self.PythonPath_Entry.pack(side=Tkinter.LEFT,expand=Tkinter.YES,fill=Tkinter.X)
+		PythonPathButton = MyButton(PythonPathFrame,text='Set',width=8,
+								command=self.openDirectory_pythonPath)
+		PythonPathButton.pack(side=Tkinter.LEFT,expand=Tkinter.NO)
+									
 		CmdMayaScrollbar = MyScrollbar( mayaCmdGroup.interior() )
 		CmdMayaScrollbar.pack()
 		self.CmdMayaText = MyText(mayaCmdGroup.interior(),yscrollcommand=CmdMayaScrollbar.set,height=15)
@@ -224,7 +242,7 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 		
 		#create default maya command
 		#read command from env's default command
-                if self.envMaya.get('mayaDefaultCommand') != None:
+		if self.envMaya.get('mayaDefaultCommand') != None:
 			self.CmdMayaText.insert( Tkinter.END,(self.envMaya.get('mayaDefaultCommand') + '\n') )
 	
 		sysCmdPage = notebook.add('System Command')
@@ -262,29 +280,6 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 		self.BatFileText = MyText(batFileGroup.interior(),yscrollcommand=BatFileScrollbar.set,height=15)
 		self.BatFileText.pack(side=Tkinter.LEFT,expand=Tkinter.YES,fill=Tkinter.X)
 		BatFileScrollbar.config(command=self.BatFileText.yview)
-		
-## 		#use Toplevel widget to create the preference window
-## 		self.batFileRoot = Tkinter.Toplevel(self.root)
-## 		self.batFileRoot.title('Batch File')
-## 		#system python command Frame
-## 		batFileFrame = MyFrame(self.batFileRoot)
-## 		batFileFrame.pack(expand=Tkinter.YES,fill=Tkinter.BOTH)
-## 		batFileScrollbar = MyScrollbar(batFileFrame)
-## 		batFileScrollbar.pack()
-## 		self.batFileText = MyText(batFileFrame,yscrollcommand=batFileScrollbar.set,height=25)
-## 		self.batFileText.pack(side=Tkinter.LEFT,expand=Tkinter.YES,fill=Tkinter.X)
-## 		batFileScrollbar.config(command=self.batFileText.yview)		
-## 		#add batch file content to widget
-## 		self.batFileText.insert( Tkinter.END, self.getBatchFileContent() )
-## 		#batch file Frame
-## 		BatchFileFrame1 = MyFrame(self.batFileRoot)
-## 		BatchFileFrame1.pack()
-## 		OpenBatchFileButton = MyButton(BatchFileFrame1,text='Open',width=20,
-## 						  command=self.openBatchFileButtonFunc)
-## 		OpenBatchFileButton.pack(side=Tkinter.LEFT,expand=Tkinter.YES,fill=Tkinter.X)
-## 		SaveBatchFileButton = MyButton(BatchFileFrame1,text='Save',width=20,
-## 					   command=self.saveBatchFile)
-## 		SaveBatchFileButton.pack(side=Tkinter.LEFT,expand=Tkinter.YES,fill=Tkinter.X)
 		
 		notebook.setnaturalsize()
 		
@@ -340,11 +335,15 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 		PySubMenu.add_command( label='Shake Render',command = self.shake )
 		PySubMenu.add_separator()
 		for x in os.listdir( os.path.normpath(self.BatchToolDir+'command/system') ) :
-			if x.endswith('.py') :
+			if x.endswith('.py') or x.endswith('.pyc') :
 				if x!= '__init__.py':
 					cmd = self.BatchToolDir+'command/system/'+x
-					subMenu = PySubMenu.add_command( label=re.sub(r'(.py)$','',x),
-									 command=lambda f=cmd:self.sysPython(f) )
+					if x.endswith('.py'):
+						subMenu = PySubMenu.add_command( label=re.sub(r'(.py)$','',x),
+														command=lambda f=cmd:self.sysPython(f) )
+					else:
+						subMenu = PySubMenu.add_command( label=re.sub(r'(.pyc)$','',x),
+														command=lambda f=cmd:self.sysPython(f) )
 		Menu.add_cascade(label='Python',menu=PySubMenu)  		
 
 		#Create the Render Farm menu
@@ -636,7 +635,7 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 			#close save preference window
 			self.preferenceRoot.destroy()
 		
-        #func for save preferences
+    #func for save preferences
 	def saveMayaPreference(self):
 		#Linux
 		if os.name == 'posix':
@@ -783,7 +782,7 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 		#self.File.set(file+'\n')
 		if len(f):
 			f = 'python("import sys");\n' +\
-			    'python("sys.path.append(\\\\"' + os.path.dirname(f) +'\\\\")");\n' +\
+			    'python("sys.path.append(\\"' + os.path.dirname(f) +'\\")");\n' +\
 			    'python("import ' + os.path.splitext( os.path.basename(f) )[0] + '");\n' +\
 			    'python("' + os.path.splitext(  os.path.basename(f) )[0] + '.' +\
 			    'main'  + '()");\n'
@@ -810,6 +809,12 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 		if len(folder)!=0:
 			os.path.walk( folder,self.getFileInDir,self.env.get('openDirectoryInitialExt') )
 
+	#func for for open directory to set python path
+	def openDirectory_pythonPath(self):
+		folder = tkFileDialog.askdirectory(title = 'Set Python Path' )
+		if folder:
+			self.PythonPath_Entry.insert(0, folder)
+			
 	#func for for open directory menu
 	def openRDirectory(self):
 		folder = tkFileDialog.askdirectory(title = 'Open Directory',
@@ -877,11 +882,29 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 						mayaCmd += 'batch'
 				#Get project
 				cmdTxt = ' -proj ' + '\"' + self.envMaya['Proj'] + '\"'
+				
 				#Get command
-				cmdTxt += ' -command ' + '\"' + self.CmdMayaText.get('1.0',Tkinter.END).replace('\"','\\"')
+				cmd_maya = self.CmdMayaText.get('1.0',Tkinter.END)
+				# add python path
+				cmd_pythonPath = list()
+				if self.PythonPath_Entry.get() :
+					cmd_pythonPath.append('python("import sys");')
+					cmd_pythonPath.append( 'python("sys.path.append(\\"%s\\")");' % self.PythonPath_Entry.get().replace('\\','\/') )
+					cmd_pythonPath = '\n'.join(cmd_pythonPath)
+					cmd_maya = cmd_pythonPath + cmd_maya
+				
+				# for batch
+				if self.MayaBatchVar.get() == 1 :
+					cmdTxt += ' -command ' + '\"' + cmd_maya.replace('\\\"','\\\\\"').replace('\"','\\"')
+				else:
+					# for not batch
+					cmdTxt += ' -command ' + '\"' + cmd_maya.replace('\"','\\"')
+				
 				if self.MayaSaveVar.get() == 1 :
-						cmdTxt += 'file -s -f;'
-				cmdTxt += 'quit -force;\"'
+					cmdTxt += 'file -s -f;'
+				if self.MayaQuitVar.get() == 1 :
+					cmdTxt += 'quit -force;'
+				cmdTxt += '\"'
 			
 		if cmdSys:
 			#get system command

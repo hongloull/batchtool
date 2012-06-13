@@ -340,11 +340,15 @@ III.  Both the English and the Chinese version tutorial files can be found in th
 		PySubMenu.add_command( label='Shake Render',command = self.shake )
 		PySubMenu.add_separator()
 		for x in os.listdir( os.path.normpath(self.BatchToolDir+'command/system') ) :
-			if x.endswith('.py') :
+			if x.endswith('.py') or x.endswith('.pyc') :
 				if x!= '__init__.py':
 					cmd = self.BatchToolDir+'command/system/'+x
-					subMenu = PySubMenu.add_command( label=re.sub(r'(.py)$','',x),
-									 command=lambda f=cmd:self.sysPython(f) )
+					if x.endswith('.py'):
+						subMenu = PySubMenu.add_command( label=re.sub(r'(.py)$','',x),
+														command=lambda f=cmd:self.sysPython(f) )
+					else:
+						subMenu = PySubMenu.add_command( label=re.sub(r'(.pyc)$','',x),
+														command=lambda f=cmd:self.sysPython(f) )
 		Menu.add_cascade(label='Python',menu=PySubMenu)  		
 
 		#Create the Render Farm menu

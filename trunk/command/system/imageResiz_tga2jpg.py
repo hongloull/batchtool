@@ -7,7 +7,7 @@ import os
 import sys
 import traceback
 
-def imageResize(f):
+def imageResize_tga2jpg(f):
     if os.path.isfile(f) :
         try:
             if f.endswith('.tga') or f.endswith('.TGA'):
@@ -28,7 +28,17 @@ def imageResize(f):
             pass
     else:
         print '%s is not exists.' % fileName
-
+#
+#def get_file(fList):
+#    fileLists = list()
+#    if fList:
+#        for f in fList:
+#            if os.path.isfile(f) :
+#                fileLists.append(f)
+#            elif os.path.isdir(f) :
+                
+        
+    
 
 if __name__ == "__main__" :
-    imageResize( sys.argv[1] )
+    imageResize_tga2jpg( sys.argv[1] )
