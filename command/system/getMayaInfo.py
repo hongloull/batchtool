@@ -12,8 +12,9 @@ def getMayaInfo():
     mayaCmd +=  '\n' + 'python' + '(\"' + 'sceneName = cmds.file(q=1,sn=1)' + '\");'
     mayaCmd +=  '\n' + 'python' + '(\"' + 'print \'maya location:\',mayaLoc' + '\");'
     mayaCmd +=  '\n' + 'python' + '(\"' + 'print \'current scene:\',sceneName' + '\");'
-    echo = telnetlib.Telnet('localhost',2222)
+    echo = telnetlib.Telnet('localhost',7720)
     echo.write(mayaCmd)
+    echo.write('quit -f')
     print echo.read_some()
 
 getMayaInfo()
